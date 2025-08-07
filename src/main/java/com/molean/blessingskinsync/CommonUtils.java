@@ -1,14 +1,13 @@
 package com.molean.blessingskinsync;
 
 import com.google.common.collect.Iterables;
-import com.google.gson.Gson;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.HttpURLConnection;
+import com.google.gson.*;
+import net.skinsrestorer.api.SkinVariant;
+import net.skinsrestorer.api.exception.SkinRequestException;
+import net.skinsrestorer.api.property.IProperty;
+import net.skinsrestorer.shared.SkinsRestorerAPIShared;
+
+import java.io.*;
 import java.net.URL;
 import java.util.Map;
 import java.util.Set;
@@ -25,28 +24,23 @@ public class CommonUtils {
         } else {
             try {
                 textureUrl = textureUrl.replace("%texture%", skin.getTexture());
-                String variant = skin.getModel().equalsIgnoreCase("default") ? "classic" : "slim";
-                URL url = new URL("https://api.mineskin.org/generate/url?url=" + textureUrl + "&variant=" + variant);
-                int responseCode = 0;
-                Gson gson = new Gson();
-                for (int attempt = 0; attempt < 2; attempt++) {
-                    HttpURLConnection http = (HttpURLConnection) url.openConnection();
-                    http.setRequestMethod("POST");
-                    http.setDoOutput(true);
-                    responseCode = http.getResponseCode();
-                    if (responseCode == 200) {
-                        byte[] bytes = readInputStream(http.getInputStream());
-                        texture = gson.fromJson(new String(bytes), MineSkin.class).getData().getTexture();
-                        if (texture != null) {
-                            SkinCache.INSTANCE.set(skin.getTexture(), texture);
-                            SkinCache.INSTANCE.persist();
-                        }
-                        return texture;
-                    }
+                SkinVariant variant = SkinVariant.CLASSIC;
+                if (!skin.getModel().equalsIgnoreCase("default")) {
+                    variant = SkinVariant.SLIM;
                 }
-                LOGGER.warning("无法从MineSkinAPI获取皮肤, 状态码 " + responseCode);
-                return null;
-            } catch (IOException ignored) {
+                IProperty property = SkinsRestorerAPIShared.getApi().genSkinUrl(textureUrl, variant);
+                if (property != null) {
+                    texture = new MineSkin.Data.Texture();
+                    texture.setValue(property.getValue());
+                    texture.setSignature(property.getSignature());
+                    SkinCache.INSTANCE.set(skin.getTexture(), texture);
+                    SkinCache.INSTANCE.persist();
+                    return texture;
+                } else {
+                    return null;
+                }
+            } catch (SkinRequestException e){
+                LOGGER.warning(e.getMessage());
                 return null;
             }
         }
