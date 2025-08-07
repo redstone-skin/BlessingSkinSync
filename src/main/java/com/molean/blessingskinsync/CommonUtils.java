@@ -31,7 +31,6 @@ public class CommonUtils {
                 Gson gson = new Gson();
                 for (int attempt = 0; attempt < 2; attempt++) {
                     HttpURLConnection http = (HttpURLConnection) url.openConnection();
-                    http.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0");
                     http.setRequestMethod("POST");
                     http.setDoOutput(true);
                     responseCode = http.getResponseCode();
