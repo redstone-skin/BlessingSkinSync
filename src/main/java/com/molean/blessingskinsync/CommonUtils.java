@@ -51,7 +51,11 @@ public class CommonUtils {
                         os.write(input, 0, input.length);
                     }
                     if (http2.getResponseCode() != 200) {
-                        LOGGER.warning(responseCode + ":" + new String(readInputStream(http2.getErrorStream())));
+                        InputStream errorStream = http2.getErrorStream();
+                        String errorMessage = (errorStream != null)
+                                ? new String(readInputStream(errorStream))
+                                : "Error Message Unavailable";
+                        LOGGER.warning(http2.getResponseCode() + ": " + errorMessage);
                         return null;
                     } else {
                         InputStream inputStream = http2.getInputStream();
@@ -125,11 +129,9 @@ public class CommonUtils {
         byte[] buffer = new byte[1024];
         int len = 0;
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
-
         while((len = inputStream.read(buffer)) != -1) {
             bos.write(buffer, 0, len);
         }
-
         bos.close();
         return bos.toByteArray();
     }
